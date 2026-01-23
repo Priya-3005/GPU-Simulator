@@ -1,17 +1,21 @@
 from cluster import Cluster
-from autoscaler import BaselineAutoscaler
+# from autoscaler import BaselineAutoscaler
+from autoscaler import AutoScaler
+
 from job import Job
 import random 
 from gpu import GPU
 
 
 class Simulator:
-    def __init__(self, sim_time=200):
+    def __init__(self, sim_time=300):
         self.sim_time = sim_time
+        self.sla = 120
         self.cluster = Cluster()
-        self.autoscaler = BaselineAutoscaler()
+        self.autoscaler = AutoScaler(self.cluster, self.sla)
         self.time = 0
         self.jobs = []
+        self.job_queue = []
 
     def generate_jobs(self):
         for t in range(self.sim_time):
@@ -40,7 +44,7 @@ class Simulator:
             self.cluster.schedule(t)
 
             # Autoscaling
-            self.autoscaler.scale_if_needed(self.cluster)
+            self.autoscaler.scale_if_needed(self.job_queue)
 
             # Update GPUs
             self.cluster.update_gpus()
