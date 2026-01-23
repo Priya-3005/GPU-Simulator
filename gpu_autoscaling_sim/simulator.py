@@ -15,7 +15,7 @@ class Simulator:
         self.autoscaler = AutoScaler(self.cluster, self.sla)
         self.time = 0
         self.jobs = []
-        self.job_queue = []
+        # self.job_queue = []
 
     def generate_jobs(self):
         for t in range(self.sim_time):
@@ -44,7 +44,7 @@ class Simulator:
             self.cluster.schedule(t)
 
             # Autoscaling
-            self.autoscaler.scale_if_needed(self.job_queue)
+            self.autoscaler.scale_if_needed(self.cluster.queue)
 
             # Update GPUs
             self.cluster.update_gpus()

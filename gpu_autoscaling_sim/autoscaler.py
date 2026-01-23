@@ -33,7 +33,7 @@ class AutoScaler:
         candidates = []
 
         for gpu in self.gpu_types:
-            est_latency = job.size / gpu["speed"]
+            est_latency = job.compute / gpu["speed"]
 
             if est_latency <= self.sla:
                 candidates.append((gpu, est_latency))
