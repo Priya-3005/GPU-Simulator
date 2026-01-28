@@ -5,7 +5,6 @@ class AutoScaler:
         self.cluster = cluster
         self.sla = sla
 
-        # Available GPU types (your novelty!)
         self.gpu_types = [
             {"type": "L40S", "speed": 1.0, "memory": 48, "cost": 0.5},
             {"type": "A100", "speed": 1.5, "memory": 80, "cost": 1.0},
@@ -14,7 +13,7 @@ class AutoScaler:
 
     def scale_if_needed(self, job_queue):
         if len(job_queue) > 5:
-            job = job_queue[0]  # look at next job
+            job = job_queue[0]  
             best_gpu = self.select_best_gpu(job)
 
             if best_gpu:
@@ -41,6 +40,6 @@ class AutoScaler:
         if not candidates:
             return None
 
-        # Choose cheapest GPU that meets SLA
+        # Choosing cheapest GPU that meets SLA
         candidates.sort(key=lambda x: x[0]["cost"])
         return candidates[0][0]

@@ -29,24 +29,20 @@ class Simulator:
     def run(self):
         self.generate_jobs()
 
-        # Start with one GPU
         self.cluster.add_gpu(GPU("H100", speed=2.0, memory=141, cost=2.0))
 
         for t in range(self.sim_time):
             self.time = t
 
-            # Add arriving jobs
+            
             for job in self.jobs:
                 if job.arrival_time == t:
                     self.cluster.add_job(job)
 
-            # Schedule jobs
             self.cluster.schedule(t)
 
-            # Autoscaling
             self.autoscaler.scale_if_needed(self.cluster.queue)
 
-            # Update GPUs
             self.cluster.update_gpus()
 
         return self.cluster
