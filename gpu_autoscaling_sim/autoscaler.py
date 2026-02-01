@@ -36,19 +36,46 @@ class AutoScaler:
         queue_length = len(self.cluster.queue)
 
         # SCALE UP
-        if avg_util > 0.75 and queue_length > 0:
-            job = self.cluster.queue[0]
-            best_gpu = self.select_best_gpu(job)
+        # if avg_util > 0.75 and queue_length > 0:
+        #     job = self.cluster.queue[0]
+        #     best_gpu = self.select_best_gpu(job)
 
-            if best_gpu:
-                gpu = GPU(
-                    best_gpu["type"],
-                    speed=best_gpu["speed"],
-                    memory=best_gpu["memory"],
-                    cost=best_gpu["cost"]
-                )
-                self.cluster.add_gpu(gpu)
-                print(f"Autoscaler: Scaling UP - Added {best_gpu['type']} GPU")
+        #     if best_gpu:
+        #         gpu = GPU(
+        #             best_gpu["type"],
+        #             speed=best_gpu["speed"],
+        #             memory=best_gpu["memory"],
+        #             cost=best_gpu["cost"]
+        #         )
+        #         self.cluster.add_gpu(gpu)
+        #         print(f"Autoscaler: Scaling UP - Added {best_gpu['type']} GPU")
+
+
+        # SCALE UP CONDITIONS
+        if queue_length > 0:
+
+            job = self.cluster.queue[0]
+
+            # Estimate latency using fastest GPU
+            fastest_speed = max(g["speed"] for g in self.gpu_types)
+            estimated_latency = job.compute / fastest_speed
+
+            if (
+                avg_util > 0.70
+                or queue_length > 5
+                or estimated_latency > self.sla
+            ):
+                best_gpu = self.select_best_gpu(job)
+
+                if best_gpu:
+                    gpu = GPU(
+                        best_gpu["type"],
+                        speed=best_gpu["speed"],
+                        memory=best_gpu["memory"],
+                        cost=best_gpu["cost"]
+                    )
+                    self.cluster.add_gpu(gpu)
+                    print(f"Autoscaler: Scaling UP - Added {best_gpu['type']} GPU")
 
         # SCALE DOWN
         if avg_util < 0.30:
