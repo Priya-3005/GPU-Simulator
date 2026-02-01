@@ -29,7 +29,7 @@ print("SLA Violations:", df["sla_violation"].mean() * 100, "%")
 
 plt.figure()
 plt.plot(df["latency"], label="Latency")
-plt.axhline(y=df["sla"].mean(), color='r', linestyle='--', label="Avg SLA")
+plt.axhline(y=df["sla"].mean(), color='r', linestyle='--', label="SLA threshold")
 plt.legend()
 plt.title("Job Latency")
 plt.show()

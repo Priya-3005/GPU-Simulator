@@ -41,7 +41,9 @@ class Simulator:
 
             self.cluster.schedule(t)
 
-            self.autoscaler.scale_if_needed(self.cluster.queue)
+            #self.autoscaler.scale_if_needed(self.cluster.queue) 
+            self.autoscaler.scale_if_needed(t)
+
 
             self.cluster.update_gpus()
 

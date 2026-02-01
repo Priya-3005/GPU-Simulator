@@ -11,9 +11,33 @@ class AutoScaler:
             {"type": "H100", "speed": 2.0, "memory": 141, "cost": 2.0},
         ]
 
-    def scale_if_needed(self, job_queue):
-        if len(job_queue) > 5:
-            job = job_queue[0]  
+    # def scale_if_needed(self, job_queue):
+    #     if len(job_queue) > 5:
+    #         job = job_queue[0]  
+    #         best_gpu = self.select_best_gpu(job)
+
+    #         if best_gpu:
+    #             gpu = GPU(
+    #                 best_gpu["type"],
+    #                 speed=best_gpu["speed"],
+    #                 memory=best_gpu["memory"],
+    #                 cost=best_gpu["cost"]
+    #             )
+    #             self.cluster.add_gpu(gpu)
+    #             print(f"Autoscaler: Added {best_gpu['type']} GPU")
+    #         else:
+    #             print("Autoscaler: No GPU type can meet SLA")
+    #     self.cluster.remove_idle_gpu() 
+
+
+
+    def scale_if_needed(self, current_time):
+        avg_util = self.cluster.average_utilization(current_time)
+        queue_length = len(self.cluster.queue)
+
+        # SCALE UP
+        if avg_util > 0.75 and queue_length > 0:
+            job = self.cluster.queue[0]
             best_gpu = self.select_best_gpu(job)
 
             if best_gpu:
@@ -24,9 +48,16 @@ class AutoScaler:
                     cost=best_gpu["cost"]
                 )
                 self.cluster.add_gpu(gpu)
-                print(f"Autoscaler: Added {best_gpu['type']} GPU")
-            else:
-                print("Autoscaler: No GPU type can meet SLA")
+                print(f"Autoscaler: Scaling UP - Added {best_gpu['type']} GPU")
+
+        # SCALE DOWN
+        if avg_util < 0.30:
+            for gpu in self.cluster.gpus:
+                if not gpu.busy and len(self.cluster.gpus) > 1:
+                    self.cluster.gpus.remove(gpu)
+                    print(f"Autoscaler: Scaling DOWN - Removed idle {gpu.type} GPU")
+                    break
+
 
     def select_best_gpu(self, job):
         candidates = []
