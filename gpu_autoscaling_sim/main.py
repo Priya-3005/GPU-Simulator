@@ -18,9 +18,20 @@ for job in jobs:
 
 df = pd.DataFrame(data)
 
+# total_cost = 0
+# for gpu in cluster.gpus:
+#     total_cost += gpu.cost * 300
+
+#new addi
 total_cost = 0
+
+# Active GPUs
 for gpu in cluster.gpus:
-    total_cost += gpu.cost * 300
+    total_cost += gpu.cost * gpu.total_busy_time
+
+# Removed GPUs
+for gpu in cluster.removed_gpus:
+    total_cost += gpu.cost * gpu.total_busy_time
 
 print("Total GPUs:", len(cluster.gpus))
 print("Total Cost:", total_cost)

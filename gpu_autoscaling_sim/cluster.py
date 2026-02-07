@@ -5,6 +5,7 @@ class Cluster:
         self.gpus = []
         self.queue = []
         self.completed_jobs = []
+        self.removed_gpus = []
 
     def add_gpu(self, gpu):
         self.gpus.append(gpu)

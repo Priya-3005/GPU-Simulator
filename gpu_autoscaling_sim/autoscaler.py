@@ -82,6 +82,10 @@ class AutoScaler:
             for gpu in self.cluster.gpus:
                 if not gpu.busy and len(self.cluster.gpus) > 1:
                     self.cluster.gpus.remove(gpu)
+
+                    #new addition
+                    self.cluster.removed_gpus.append(gpu)
+                    
                     print(f"Autoscaler: Scaling DOWN - Removed idle {gpu.type} GPU")
                     break
 

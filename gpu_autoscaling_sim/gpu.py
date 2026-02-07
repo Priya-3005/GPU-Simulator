@@ -9,6 +9,9 @@ class GPU:
         self.remaining_time = 0
         self.total_busy_time = 0
 
+        # #for cost opti
+        # self.busy_start_time = None
+
         # To scale down GPUs when not in use
         self.idle_time = 0
 
@@ -17,6 +20,9 @@ class GPU:
         self.current_job = job
         job.start_time = current_time
         self.remaining_time = job.compute / self.speed
+
+        # #cost opti
+        # self.busy_start_time = current_time
 
     # def update(self, time_step=1):
     #     if self.busy:
