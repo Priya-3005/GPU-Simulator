@@ -12,8 +12,12 @@ class AutoScaler:
         ]
 
         # Hybrid scale-down parameters
-        self.idle_threshold = 15     # GPU must be idle for 15 time units
-        self.util_threshold = 0.40   # Cluster utilization must be below 40%
+        self.idle_threshold = 12    # GPU must be idle for 15 time units
+        self.util_threshold = 0.35   # Cluster utilization must be below 40%
+
+        # Stability control
+        self.cooldown_period = 10      # wait 10 timesteps between scale downs
+        self.last_scale_down_time = -100
 
     # def scale_if_needed(self, job_queue):
     #     if len(job_queue) > 5:
@@ -106,45 +110,59 @@ class AutoScaler:
         #         break
 
 
-        # SCALE DOWN (Smarter Hybrid Policy)
-        avg_util = self.cluster.average_utilization(current_time)
-        queue_length = len(self.cluster.queue)
+        # # SCALE DOWN (Smarter Hybrid Policy)
+        # avg_util = self.cluster.average_utilization(current_time)
+        # queue_length = len(self.cluster.queue)
 
-        if (
-            queue_length == 0 and                # No pending jobs
-            avg_util < 0.30                      # Low cluster utilization
-        ):
-            for gpu in self.cluster.gpus:
-                if (
-                    not gpu.busy and             # GPU not executing
-                    gpu.idle_time > 25 and       # Idle long enough (tunable)
-                    len(self.cluster.gpus) > 1   # Keep minimum 1 GPU
-                ):
-                    self.cluster.gpus.remove(gpu)
-                    print(f"Autoscaler: Scaling DOWN - Removed idle {gpu.type} GPU")
-                    break
-        
-
-        # # -----------------------------
-        # # SMART HYBRID SCALE DOWN
-        # # -----------------------------
-        # if queue_length <= 0 and avg_util < self.util_threshold:
-
-        #     for gpu in list(self.cluster.gpus):   # use list() to avoid modification issues
+        # if (
+        #     queue_length == 0 and                # No pending jobs
+        #     avg_util < 0.30                      # Low cluster utilization
+        # ):
+        #     for gpu in self.cluster.gpus:
         #         if (
-        #             not gpu.busy
-        #             and gpu.idle_time > self.idle_threshold
-        #             and len(self.cluster.gpus) > 1
+        #             not gpu.busy and             # GPU not executing
+        #             gpu.idle_time > 25 and       # Idle long enough (tunable)
+        #             len(self.cluster.gpus) > 1   # Keep minimum 1 GPU
         #         ):
         #             self.cluster.gpus.remove(gpu)
-        #             print(
-        #                 f"Autoscaler: Hybrid Scaling DOWN - "
-        #                 f"Removed idle {gpu.type} | "
-        #                 f"Idle Time: {gpu.idle_time} | "
-        #                 f"Util: {round(avg_util,2)}"
-        #             )
-        #             break
+        #             print(f"Autoscaler: Scaling DOWN - Removed idle {gpu.type} GPU")
+        #             break 
 
+        # -----------------------------
+        # COST-AWARE STABLE SCALE DOWN
+        # -----------------------------
+        if (
+            queue_length == 0
+            and avg_util < self.util_threshold
+            and (current_time - self.last_scale_down_time) > self.cooldown_period
+        ):
+
+            # Get all removable GPUs
+            removable_gpus = [
+                gpu for gpu in self.cluster.gpus
+                if (
+                    not gpu.busy
+                    and gpu.idle_time > self.idle_threshold
+                )
+            ]
+
+            if len(self.cluster.gpus) > 1 and removable_gpus:
+
+                # Remove MOST EXPENSIVE idle GPU first
+                removable_gpus.sort(key=lambda g: g.cost, reverse=True)
+                gpu_to_remove = removable_gpus[0]
+
+                self.cluster.gpus.remove(gpu_to_remove)
+                self.last_scale_down_time = current_time
+
+                print(
+                    f"Autoscaler: Smart Scale DOWN - "
+                    f"Removed {gpu_to_remove.type} | "
+                    f"Idle: {gpu_to_remove.idle_time} | "
+                    f"Cost: {gpu_to_remove.cost}"
+                )
+
+        
 
 
 
