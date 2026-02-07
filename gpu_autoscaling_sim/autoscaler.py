@@ -11,6 +11,10 @@ class AutoScaler:
             {"type": "H100", "speed": 2.0, "memory": 141, "cost": 2.0},
         ]
 
+        # Hybrid scale-down parameters
+        self.idle_threshold = 15     # GPU must be idle for 15 time units
+        self.util_threshold = 0.40   # Cluster utilization must be below 40%
+
     # def scale_if_needed(self, job_queue):
     #     if len(job_queue) > 5:
     #         job = job_queue[0]  
@@ -77,17 +81,49 @@ class AutoScaler:
                     self.cluster.add_gpu(gpu)
                     print(f"Autoscaler: Scaling UP - Added {best_gpu['type']} GPU")
 
-        # SCALE DOWN
-        if avg_util < 0.30:
-            for gpu in self.cluster.gpus:
-                if not gpu.busy and len(self.cluster.gpus) > 1:
-                    self.cluster.gpus.remove(gpu)
+        # # SCALE DOWN
+        # if avg_util < 0.30:
+        #     for gpu in self.cluster.gpus:
+        #         if not gpu.busy and len(self.cluster.gpus) > 1:
+        #             self.cluster.gpus.remove(gpu)
 
-                    #new addition
-                    self.cluster.removed_gpus.append(gpu)
-                    
+        #             #new addition
+        #             self.cluster.removed_gpus.append(gpu)
+
+        #             print(f"Autoscaler: Scaling DOWN - Removed idle {gpu.type} GPU")
+        #             break
+
+        # # HYBRID SCALE DOWN
+        # for gpu in self.cluster.gpus:
+        #     if (
+        #         not gpu.busy
+        #         and gpu.idle_time >= self.idle_threshold
+        #         and avg_util < self.util_threshold
+        #         and len(self.cluster.gpus) > 1
+        #     ):
+        #         self.cluster.gpus.remove(gpu)
+        #         print(f"Autoscaler: Hybrid Scaling DOWN - Removed idle {gpu.type} GPU")
+        #         break
+
+
+        # SCALE DOWN (Smarter Hybrid Policy)
+        avg_util = self.cluster.average_utilization(current_time)
+        queue_length = len(self.cluster.queue)
+
+        if (
+            queue_length == 0 and                # No pending jobs
+            avg_util < 0.30                      # Low cluster utilization
+        ):
+            for gpu in self.cluster.gpus:
+                if (
+                    not gpu.busy and             # GPU not executing
+                    gpu.idle_time > 25 and       # Idle long enough (tunable)
+                    len(self.cluster.gpus) > 1   # Keep minimum 1 GPU
+                ):
+                    self.cluster.gpus.remove(gpu)
                     print(f"Autoscaler: Scaling DOWN - Removed idle {gpu.type} GPU")
                     break
+
 
 
     def select_best_gpu(self, job):
