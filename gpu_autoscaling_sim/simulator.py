@@ -10,9 +10,9 @@ from gpu import GPU
 class Simulator:
     def __init__(self, sim_time=300):
         self.sim_time = sim_time
-        self.sla = 120
+        #self.sla = 120
         self.cluster = Cluster()
-        self.autoscaler = AutoScaler(self.cluster, self.sla)
+        self.autoscaler = AutoScaler(self.cluster)
         self.time = 0
         self.jobs = []
         # self.job_queue = []

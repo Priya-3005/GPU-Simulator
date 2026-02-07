@@ -1,9 +1,9 @@
 from gpu import GPU
 
 class AutoScaler:
-    def __init__(self, cluster, sla):
+    def __init__(self, cluster):
         self.cluster = cluster
-        self.sla = sla
+        #self.sla = sla
 
         self.gpu_types = [
             {"type": "L40S", "speed": 1.0, "memory": 48, "cost": 0.5},
@@ -63,7 +63,7 @@ class AutoScaler:
             if (
                 avg_util > 0.70
                 or queue_length > 5
-                or estimated_latency > self.sla
+                or estimated_latency > job.sla
             ):
                 best_gpu = self.select_best_gpu(job)
 
@@ -92,7 +92,7 @@ class AutoScaler:
         for gpu in self.gpu_types:
             est_latency = job.compute / gpu["speed"]
 
-            if est_latency <= self.sla:
+            if est_latency <= job.sla:
                 candidates.append((gpu, est_latency))
 
         if not candidates:
