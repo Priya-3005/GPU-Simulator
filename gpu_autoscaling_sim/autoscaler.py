@@ -123,6 +123,28 @@ class AutoScaler:
                     self.cluster.gpus.remove(gpu)
                     print(f"Autoscaler: Scaling DOWN - Removed idle {gpu.type} GPU")
                     break
+        
+
+        # # -----------------------------
+        # # SMART HYBRID SCALE DOWN
+        # # -----------------------------
+        # if queue_length <= 0 and avg_util < self.util_threshold:
+
+        #     for gpu in list(self.cluster.gpus):   # use list() to avoid modification issues
+        #         if (
+        #             not gpu.busy
+        #             and gpu.idle_time > self.idle_threshold
+        #             and len(self.cluster.gpus) > 1
+        #         ):
+        #             self.cluster.gpus.remove(gpu)
+        #             print(
+        #                 f"Autoscaler: Hybrid Scaling DOWN - "
+        #                 f"Removed idle {gpu.type} | "
+        #                 f"Idle Time: {gpu.idle_time} | "
+        #                 f"Util: {round(avg_util,2)}"
+        #             )
+        #             break
+
 
 
 
