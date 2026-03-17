@@ -48,12 +48,6 @@ class Cluster:
                 else:
                     self.queue.insert(0, job)
 
-    # def update_gpus(self, time_step=1):
-    #     for gpu in self.gpus:
-    #         was_busy = gpu.busy
-    #         gpu.update(time_step)
-    #         if was_busy and not gpu.busy:
-    #             self.completed_jobs.append(gpu.current_job) 
 
     def update_gpus(self, time_step=1):
         for gpu in self.gpus:
