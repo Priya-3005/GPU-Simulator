@@ -1,7 +1,5 @@
 from cluster import Cluster
-# from autoscaler import BaselineAutoscaler
 from autoscaler import AutoScaler
-
 from job import Job
 import random 
 from gpu import GPU
@@ -11,12 +9,12 @@ class Simulator:
     def __init__(self, sim_time=300,policy = "smart"):
         self.sim_time = sim_time
         self.policy = policy
-        #self.sla = 120
+
         self.cluster = Cluster()
         self.autoscaler = AutoScaler(self.cluster,policy=self.policy)
         self.time = 0
         self.jobs = []
-        # self.job_queue = []
+        
 
     def generate_jobs(self):
         for t in range(self.sim_time):
