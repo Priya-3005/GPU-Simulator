@@ -1,5 +1,5 @@
 class GPU:
-    def __init__(self, gpu_type, speed, memory, cost):
+    def __init__(self, gpu_type, speed, memory, cost, creation_time=0):
         self.type = gpu_type
         self.speed = speed
         self.memory = memory
@@ -14,6 +14,8 @@ class GPU:
 
         # To scale down GPUs when not in use
         self.idle_time = 0
+        self.creation_time = 0
+        self.removal_time = None
 
     def assign_job(self, job, current_time):
         self.busy = True

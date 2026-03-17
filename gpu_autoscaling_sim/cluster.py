@@ -7,7 +7,8 @@ class Cluster:
         self.completed_jobs = []
         self.removed_gpus = []
 
-    def add_gpu(self, gpu):
+    def add_gpu(self, gpu, current_time):
+        gpu.creation_time = current_time
         self.gpus.append(gpu)
     
     def remove_idle_gpu(self, idle_threshold=20):
@@ -59,3 +60,20 @@ class Cluster:
             completed_job = gpu.update(time_step)
             if completed_job:
                 self.completed_jobs.append(completed_job)
+    
+    def calculate_total_cost(self, final_time):
+        total_cost = 0
+
+        # Cost for removed GPUs
+        for gpu in self.removed_gpus:
+            if hasattr(gpu, "creation_time") and hasattr(gpu, "removal_time"):
+                active_time = gpu.removal_time - gpu.creation_time
+                total_cost += gpu.cost * active_time
+
+        # Cost for GPUs still active at simulation end
+        for gpu in self.gpus:
+            if hasattr(gpu, "creation_time"):
+                active_time = final_time - gpu.creation_time
+                total_cost += gpu.cost * active_time
+
+        return total_cost

@@ -1,9 +1,10 @@
 from gpu import GPU
 
 class AutoScaler:
-    def __init__(self, cluster):
+    def __init__(self, cluster,policy="smart"):
         self.cluster = cluster
         #self.sla = sla
+        self.policy = policy 
 
         self.gpu_types = [
             {"type": "L40S", "speed": 1.0, "memory": 48, "cost": 0.5},
@@ -43,6 +44,9 @@ class AutoScaler:
         avg_util = self.cluster.average_utilization(current_time)
         queue_length = len(self.cluster.queue)
 
+        if self.policy == "static":
+            return
+
         # SCALE UP
         # if avg_util > 0.75 and queue_length > 0:
         #     job = self.cluster.queue[0]
@@ -60,30 +64,42 @@ class AutoScaler:
 
 
         # SCALE UP CONDITIONS
-        if queue_length > 0:
+        if self.policy in ["scale_up", "basic", "smart"]:
+            if queue_length > 0:
 
-            job = self.cluster.queue[0]
+                job = self.cluster.queue[0]
 
-            # Estimate latency using fastest GPU
-            fastest_speed = max(g["speed"] for g in self.gpu_types)
-            estimated_latency = job.compute / fastest_speed
+                # Estimate latency using fastest GPU
+                fastest_speed = max(g["speed"] for g in self.gpu_types)
+                estimated_latency = job.compute / fastest_speed
 
-            if (
-                avg_util > 0.70
-                or queue_length > 5
-                or estimated_latency > job.sla
-            ):
-                best_gpu = self.select_best_gpu(job)
+                if (
+                    avg_util > 0.70
+                    or queue_length > 5
+                    or estimated_latency > job.sla
+                ):
+                    best_gpu = self.select_best_gpu(job)
 
-                if best_gpu:
-                    gpu = GPU(
-                        best_gpu["type"],
-                        speed=best_gpu["speed"],
-                        memory=best_gpu["memory"],
-                        cost=best_gpu["cost"]
-                    )
-                    self.cluster.add_gpu(gpu)
-                    print(f"Autoscaler: Scaling UP - Added {best_gpu['type']} GPU")
+                    if best_gpu:
+                        gpu = GPU(
+                            best_gpu["type"],
+                            speed=best_gpu["speed"],
+                            memory=best_gpu["memory"],
+                            cost=best_gpu["cost"], 
+                            creation_time=current_time
+
+                        )
+                        self.cluster.add_gpu(gpu,current_time)
+                        print(f"Autoscaler: Scaling UP - Added {best_gpu['type']} GPU") 
+        if self.policy == "basic":
+            if avg_util < 0.30:
+                for gpu in self.cluster.gpus:
+                    if not gpu.busy and len(self.cluster.gpus) > 1:
+                        gpu_to_remove.removal_time = current_time
+                        self.cluster.removed_gpus.append(gpu)
+                        self.cluster.gpus.remove(gpu)
+                        print("Basic Scale-Down removed GPU")
+                        break
 
         # # SCALE DOWN
         # if avg_util < 0.30:
@@ -131,36 +147,38 @@ class AutoScaler:
         # -----------------------------
         # COST-AWARE STABLE SCALE DOWN
         # -----------------------------
-        if (
-            queue_length == 0
-            and avg_util < self.util_threshold
-            and (current_time - self.last_scale_down_time) > self.cooldown_period
-        ):
+        if self.policy == "smart":
+            if (
+                queue_length == 0
+                and avg_util < self.util_threshold
+                and (current_time - self.last_scale_down_time) > self.cooldown_period
+            ):
 
-            # Get all removable GPUs
-            removable_gpus = [
-                gpu for gpu in self.cluster.gpus
-                if (
-                    not gpu.busy
-                    and gpu.idle_time > self.idle_threshold
-                )
-            ]
+                # Get all removable GPUs
+                removable_gpus = [
+                    gpu for gpu in self.cluster.gpus
+                    if (
+                        not gpu.busy
+                        and gpu.idle_time > self.idle_threshold
+                    )
+                ]
 
-            if len(self.cluster.gpus) > 1 and removable_gpus:
+                if len(self.cluster.gpus) > 1 and removable_gpus:
 
-                # Remove MOST EXPENSIVE idle GPU first
-                removable_gpus.sort(key=lambda g: g.cost, reverse=True)
-                gpu_to_remove = removable_gpus[0]
+                    # Remove MOST EXPENSIVE idle GPU first
+                    removable_gpus.sort(key=lambda g: g.cost, reverse=True)
+                    gpu_to_remove = removable_gpus[0]
+                    gpu_to_remove.removal_time = current_time
+                    self.cluster.removed_gpus.append(gpu_to_remove)
+                    self.cluster.gpus.remove(gpu_to_remove)
+                    self.last_scale_down_time = current_time
 
-                self.cluster.gpus.remove(gpu_to_remove)
-                self.last_scale_down_time = current_time
-
-                print(
-                    f"Autoscaler: Smart Scale DOWN - "
-                    f"Removed {gpu_to_remove.type} | "
-                    f"Idle: {gpu_to_remove.idle_time} | "
-                    f"Cost: {gpu_to_remove.cost}"
-                )
+                    print(
+                        f"Autoscaler: Smart Scale DOWN - "
+                        f"Removed {gpu_to_remove.type} | "
+                        f"Idle: {gpu_to_remove.idle_time} | "
+                        f"Cost: {gpu_to_remove.cost}"
+                    )
 
         
 
