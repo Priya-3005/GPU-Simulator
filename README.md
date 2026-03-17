@@ -60,8 +60,8 @@ The **Smart Hybrid Autoscaler** introduces:
 ## 💰 Cost Model
 
 Unlike traditional simulations, this project uses: 
-# Cost = GPU Hourly rate * Active Time, 
-where active time is the time between the creation and removal of GPU instance. 
+* Cost = GPU Hourly rate * Active Time, 
+* where active time is the time between the creation and removal of GPU instance. 
 ---
 
 ## 📊 Evaluation Metrics
